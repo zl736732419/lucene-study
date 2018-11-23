@@ -1,3 +1,4 @@
+import com.zheng.lucene.hello.HelloLucene;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -1,3 +1,5 @@
+package com.zheng.lucene.hello;
+
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
