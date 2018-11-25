@@ -1,6 +1,12 @@
 import com.zheng.lucene.index.IndexCase;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.IndexableField;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @Author zhenglian
@@ -20,7 +26,37 @@ public class IndexCaseTest {
     }
     
     @Test
-    public void search() throws Exception {
-        indexCase.search("id", "5");
+    public void update() throws Exception {
+        TextField field = new TextField("id", "11", Field.Store.YES);
+        List<IndexableField> fields = new ArrayList<>();
+        fields.add(field);
+        indexCase.update("id", "1", fields);
+    }
+
+    
+    
+    @Test
+    public void delete() throws Exception {
+        indexCase.delete("id", "4");
+    }
+    
+    @Test
+    public void deleteAll() throws Exception {
+        indexCase.deleteAll();
+    }
+
+    @Test
+    public void rollback() throws Exception {
+        indexCase.rollback();
+    }
+    
+    @Test
+    public void merge() throws Exception {
+        indexCase.merge(1);
+    }
+    
+    @Test
+    public void clean() throws Exception {
+        indexCase.mergeDelete();
     }
 }
