@@ -24,7 +24,7 @@ public class LuceneUtil {
     private void init() {
         try {
 //            directory = FSDirectory.open(Paths.get("E:\\lucene\\index2"));
-            directory = MMapDirectory.open(Paths.get("E:\\lucene\\index2"));
+            directory = MMapDirectory.open(Paths.get("E:\\lucene\\index"));
         } catch (IOException e) {
             e.printStackTrace();
         }

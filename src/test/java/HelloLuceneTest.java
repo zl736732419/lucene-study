@@ -30,7 +30,7 @@ public class HelloLuceneTest {
     
     @Test
     public void search() {
-        helloLucene.search(indexPath, "contents", "浏览记录", 10);
+        helloLucene.search(indexPath, "content", "浏览记录", 10);
     }
     
 }

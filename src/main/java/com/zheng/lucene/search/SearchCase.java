@@ -54,7 +54,8 @@ public class SearchCase {
         for (IndexableField f : doc.getFields()) {
             System.out.print(f.name() + ":" + f.stringValue() + " ");
         }
-        System.out.print("score:" + sd.score);
+        System.out.print(" score:" + sd.score);
+        System.out.print(" doc:" + sd.doc);
         System.out.println("]");
     }
 
@@ -157,4 +158,63 @@ public class SearchCase {
         TopDocs topDocs = searcher.search(query, num);
         printSearchResult(topDocs,searcher);
     }
+
+    /**
+     * 原始做法，先查询出所有数据，然后内存中分页
+     * 低效！会导致deep page问题
+     * @param value
+     * @param pageNo
+     * @param pageSize
+     * @throws Exception
+     */
+    public void searchByPage(String value, int pageNo, int pageSize) throws Exception {
+        System.out.println("search " + pageNo + " page.");
+        IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
+        QueryParser parser = new QueryParser("content", new StandardAnalyzer());
+        Query query = parser.parse(value);
+        int maxRow = 100;
+        TopDocs topDocs = searcher.search(query, maxRow);
+        ScoreDoc[] scoreDocs = topDocs.scoreDocs;
+        int docNum = scoreDocs.length;
+        System.out.println("got " + docNum + " records");
+        int total = maxRow >  docNum ? docNum : maxRow; 
+        int from = (pageNo - 1) * pageSize;
+        if (from >= total) {
+            return;
+        }
+        int end = pageNo * pageSize;
+        end = end < total ? end : total;
+        
+        ScoreDoc sd;
+        for (int i = from; i < end; i++) {
+            sd = scoreDocs[i];
+            printDoc(sd, searcher);
+        }
+    }
+
+    /**
+     * 在lucene内部通过ScoreDoc.doc来截断文档结果，如此每次查询的时候就不必查询整个记录
+     * 而是从指定的位置开始查询，避免deep-paging
+     * if (score > after.score || (score == after.score && doc <= afterDoc)) {
+     *     return;
+     * }
+     * score > after.score: 表示当前doc得分比after高，应该排在前面，也就是前一页的数据
+     * score == after.score && doc <= afterDoc：比较两者的doc，doc在lucene中递增，doc比after小也表示排在当前doc前面，也在前一页
+     * es中的scroll api就是采用的这个技术
+     * @param after
+     * @param value
+     * @param size
+     * @return
+     * @throws Exception
+     */
+    public ScoreDoc scroll(ScoreDoc after, String value, int size) throws Exception {
+        IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
+        QueryParser parser = new QueryParser("content", new StandardAnalyzer());
+        Query query = parser.parse(value);
+        TopDocs topDocs = searcher.searchAfter(after, query, size);
+        printSearchResult(topDocs, searcher);
+        ScoreDoc[] scoreDocs = topDocs.scoreDocs;
+        return scoreDocs[scoreDocs.length - 1];
+    }
+    
 }

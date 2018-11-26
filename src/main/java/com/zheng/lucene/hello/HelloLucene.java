@@ -92,7 +92,7 @@ public class HelloLucene {
         doc.add(new TextField("title", file.getFileName().toString(), Field.Store.YES));
         // content
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-        doc.add(new TextField("contents", reader));
+        doc.add(new TextField("content", reader));
         if (writer.getConfig().getOpenMode() == IndexWriterConfig.OpenMode.CREATE) {
             writer.addDocument(doc);
         } else {
