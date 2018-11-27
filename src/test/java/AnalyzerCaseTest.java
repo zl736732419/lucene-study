@@ -1,4 +1,5 @@
 import com.zheng.lucene.analyzer.AnalyzerCase;
+import com.zheng.lucene.analyzer.MyStopAnalyzer;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
@@ -7,6 +8,9 @@ import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * @Author zhenglian
@@ -56,5 +60,17 @@ public class AnalyzerCaseTest {
         analyzerCase.displayAllTokenInfo(str, a4);
         System.out.println("--------------");
         analyzerCase.displayAllTokenInfo(str, a5);
+    }
+    
+    @Test
+    public void myStopWordAnalyzer() throws Exception {
+        String str = "how are you";
+        Set<String> stops = new HashSet<>();
+        stops.add("you");
+        Analyzer a1 = new MyStopAnalyzer(stops);
+        analyzerCase.displayToken(str, a1);
+        System.out.println("---------------");
+        Analyzer a2 = new EnglishAnalyzer();
+        analyzerCase.displayToken(str, a2);
     }
 }
