@@ -41,10 +41,13 @@ public class MyStopAnalyzer extends StopwordAnalyzerBase {
 
     @Override
     protected TokenStreamComponents createComponents(String fieldName) {
+        // tokenizer
         final StandardTokenizer src = new StandardTokenizer();
         src.setMaxTokenLength(src.getMaxTokenLength());
+        // token filter
         TokenStream tok = new LowerCaseFilter(src);
         tok = new StopFilter(tok, CharArraySet.copy(stops));
+        
         return new TokenStreamComponents(src, tok) {
             @Override
             protected void setReader(final Reader reader) {
