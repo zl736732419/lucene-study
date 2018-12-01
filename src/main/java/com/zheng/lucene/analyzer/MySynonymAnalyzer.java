@@ -18,7 +18,7 @@ public class MySynonymAnalyzer extends Analyzer {
         src.setMaxTokenLength(src.getMaxTokenLength());
         // token filter
         final TokenStream lowercase = new LowerCaseFilter(src);
-        final TokenStream tok = new MySynonymFilter(lowercase);
+        final TokenStream tok = new MySynonymFilter(lowercase, new SimpleSynonymContext());
         return new TokenStreamComponents(src, tok) {
             @Override
             protected void setReader(final Reader reader) {
