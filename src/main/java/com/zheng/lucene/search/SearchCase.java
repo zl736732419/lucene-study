@@ -16,6 +16,7 @@ import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
@@ -50,13 +51,11 @@ public class SearchCase {
         System.out.println("=========================");
         int docId = sd.doc;
         Document doc = searcher.doc(docId);
-        System.out.print("[");
         for (IndexableField f : doc.getFields()) {
-            System.out.print(f.name() + ":" + f.stringValue() + " ");
+            System.out.println(f.name() + ":" + f.stringValue() + " ");
         }
-        System.out.print(" score:" + sd.score);
-        System.out.print(" doc:" + sd.doc);
-        System.out.println("]");
+        System.out.println("score:" + sd.score);
+        System.out.println("doc:" + sd.doc);
     }
 
     public void docsInfo() throws Exception {
@@ -215,6 +214,26 @@ public class SearchCase {
         printSearchResult(topDocs, searcher);
         ScoreDoc[] scoreDocs = topDocs.scoreDocs;
         return scoreDocs[scoreDocs.length - 1];
+    }
+
+    /**
+     * 根据文档索引顺序排序
+     * @param field
+     * @param value
+     * @param size
+     * @throws Exception
+     */
+    public void orderBySort(String field, String value, int size, Sort sort) throws Exception {
+        IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
+        QueryParser parser = new QueryParser(field, new StandardAnalyzer());
+        Query query = parser.parse(value);
+        TopDocs topDocs;
+        if (null != sort) {
+            topDocs = searcher.search(query, size, sort);
+        } else {
+            topDocs = searcher.search(query, size);
+        }
+        printSearchResult(topDocs, searcher);
     }
     
 }

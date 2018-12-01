@@ -4,6 +4,9 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.SortedDocValuesField;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
@@ -18,6 +21,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.BytesRef;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -88,8 +92,12 @@ public class HelloLucene {
         doc.add(pathField);
         // last modified time mill seconds
         doc.add(new LongPoint("modified", lastModified));
+        // size
+        doc.add(new NumericDocValuesField("size", file.toFile().length()));
+        doc.add(new StoredField("size.stored", file.toFile().length()));
         // title
         doc.add(new TextField("title", file.getFileName().toString(), Field.Store.YES));
+        doc.add(new SortedDocValuesField("title.sort", new BytesRef(file.getFileName().toString())));
         // content
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
         doc.add(new TextField("content", reader));
@@ -100,7 +108,6 @@ public class HelloLucene {
             writer.updateDocument(new Term("path", file.toString()), doc);
         }
     }
-
 
     public void search(Path indexPath, String field, String value, Integer size) {
         IndexReader reader = null;
