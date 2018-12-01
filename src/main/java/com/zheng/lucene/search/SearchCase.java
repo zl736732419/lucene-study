@@ -37,7 +37,7 @@ public class SearchCase {
         printSearchResult(topDocs, searcher);
     }
 
-    private void printSearchResult(TopDocs topDocs, IndexSearcher searcher) throws Exception {
+    public void printSearchResult(TopDocs topDocs, IndexSearcher searcher) throws Exception {
         ScoreDoc[] scoreDocs = topDocs.scoreDocs;
         System.out.println("共查询到" + scoreDocs.length + "条记录");
         for (ScoreDoc sd : scoreDocs) {
