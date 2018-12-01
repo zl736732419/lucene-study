@@ -71,5 +71,14 @@ public class SortedSearchTest {
         searchCase.orderBySort("content", "浏览记录", 10,
                 new Sort(new SortField("title.sort", SortField.Type.STRING, true)));
     }
+
+    @Test
+    public void sortByMultiFields() throws Exception {
+        searchCase.orderBySort("content", "浏览记录", 10,
+                new Sort(
+                        new SortField("size", SortField.Type.LONG),
+                        new SortField("title.sort", SortField.Type.STRING)
+                ));
+    }
     
 }
