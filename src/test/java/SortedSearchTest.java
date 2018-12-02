@@ -1,7 +1,13 @@
 import com.zheng.lucene.hello.HelloLucene;
 import com.zheng.lucene.search.SearchCase;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.DoubleValuesSource;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TermQuery;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -80,5 +86,24 @@ public class SortedSearchTest {
                         new SortField("title.sort", SortField.Type.STRING)
                 ));
     }
-    
+
+    @Test
+    public void orderByConstantScore() throws Exception {
+        DoubleValuesSource boost = DoubleValuesSource.constant(5);
+        searchCase.orderByBoostValue("content", "浏览记录", 10, boost);
+    }
+
+    @Test
+    public void orderByBoostValue() throws Exception {
+        DoubleValuesSource boost = DoubleValuesSource.fromIntField("score.custom");
+        searchCase.orderByBoostValue("content", "浏览记录", 10, boost);
+    }
+
+    @Test
+    public void orderByBoostQuery() throws Exception {
+        QueryParser parser = new QueryParser("content", new StandardAnalyzer());
+        Query q = parser.parse("浏览记录");
+        TermQuery boostMatch = new TermQuery(new Term("title", "2"));
+        searchCase.orderByBoostQuery(q, boostMatch, 100, 10);
+    }
 }

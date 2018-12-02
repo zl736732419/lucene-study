@@ -1,5 +1,6 @@
 package com.zheng.lucene.search;
 
+import com.zheng.lucene.parser.CustomQueryParser;
 import com.zheng.lucene.util.LuceneUtil;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -7,9 +8,11 @@ import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queries.function.FunctionScoreQuery;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.DoubleValuesSource;
 import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.PhraseQuery;
@@ -233,6 +236,33 @@ public class SearchCase {
         } else {
             topDocs = searcher.search(query, size);
         }
+        printSearchResult(topDocs, searcher);
+    }
+    
+    public void orderByBoostValue(String field, String value, int size, DoubleValuesSource boost) throws Exception {
+        IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
+        QueryParser parser = new QueryParser(field, new StandardAnalyzer());
+        Query q = parser.parse(value);
+        
+        // boosting query
+        FunctionScoreQuery query = FunctionScoreQuery.boostByValue(q, boost);
+        TopDocs topDocs = searcher.search(query, size);
+        printSearchResult(topDocs, searcher);
+    }
+
+    public void orderByBoostQuery(Query q, Query boostMatch, float boost, int size) throws Exception {
+        IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
+        // boosting query
+        FunctionScoreQuery query = FunctionScoreQuery.boostByQuery(q, boostMatch, boost);
+        TopDocs topDocs = searcher.search(query, size);
+        printSearchResult(topDocs, searcher);
+    }
+    
+    public void searchByCustomQueryParser(String field, String value, int size) throws Exception {
+        IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
+        QueryParser parser = new CustomQueryParser(field, new StandardAnalyzer());
+        Query query = parser.parse(value);
+        TopDocs topDocs = searcher.search(query, size);
         printSearchResult(topDocs, searcher);
     }
     

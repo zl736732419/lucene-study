@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Random;
 
 /**
  * @Author zhenglian
@@ -101,6 +102,8 @@ public class HelloLucene {
         // content
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
         doc.add(new TextField("content", reader));
+        // custom score
+        doc.add(new NumericDocValuesField("score.custom", new Random().nextInt(100)));
         if (writer.getConfig().getOpenMode() == IndexWriterConfig.OpenMode.CREATE) {
             writer.addDocument(doc);
         } else {

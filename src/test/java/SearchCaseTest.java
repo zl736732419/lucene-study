@@ -81,4 +81,20 @@ public class SearchCaseTest {
     public void searchByFuzzy() throws Exception {
         searchCase.searchByFuzzy(10);
     }
+    
+    @Test
+    public void searchByCustomQueryParser() throws Exception {
+        // fuzzy
+//        searchCase.searchByCustomQueryParser("name", "zhangsan~", 10);
+        // wildcard
+//        searchCase.searchByCustomQueryParser("name", "zhang?an", 10);
+        // regexp
+//        searchCase.searchByCustomQueryParser("name", "/[a-z]{8}/", 10);
+        // term range
+//        searchCase.searchByCustomQueryParser("name", "[lisi TO zhangsan]", 10);
+        // numeric range
+//        searchCase.searchByCustomQueryParser("id", "[1 TO 2]", 10);
+        // date range
+        searchCase.searchByCustomQueryParser("date", "[2018-11-11 TO 2018-12-20]", 10);
+    }
 }

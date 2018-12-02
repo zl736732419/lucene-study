@@ -6,6 +6,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexOptions;
@@ -15,6 +16,7 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
 
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 /**
@@ -33,6 +35,11 @@ public class IndexCase {
     private int[] attachs = {2, 3, 1, 4, 5, 7};
     // 名称，索引不分词存储
     private String[] names = {"zhangsan", "lisi", "wangwu", "zhaoliu", "tianqi", "zhaoba"};
+    // 日期，按Long类型存储
+    private String[] dates = {
+            "2018-11-11 09:30:00", "2018-11-25 09:30:00", "2018-11-30 09:30:00",
+            "2018-12-01 09:30:00", "2018-12-10 09:30:00", "2018-12-20 09:30:00"
+    };
 
     private Directory directory = LuceneUtil.getInstance().getDirectory();
     
@@ -42,6 +49,7 @@ public class IndexCase {
         IndexWriter writer = new IndexWriter(directory, iwc);
         Document document;
         FieldType ft = getIndexStoredNotAnalyzeType();
+        SimpleDateFormat sf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         for (int i = 0; i < ids.length; i++) {
             document = new Document();
             Field id = new IntPoint("id", ids[i]);
@@ -56,6 +64,10 @@ public class IndexCase {
             document.add(attach);
             Field name = new StoredField("name", names[i], ft);
             document.add(name);
+            Field date = new LongPoint("date", sf.parse(dates[i]).getTime());
+            document.add(date);
+            Field storedDate = new StoredField("date.stored", dates[i]);
+            document.add(storedDate);
             writer.addDocument(document);
         }
         writer.close();
