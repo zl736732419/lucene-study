@@ -1,74 +1,87 @@
 import com.zheng.lucene.index.IndexCase;
 import com.zheng.lucene.search.SearchCase;
+import com.zheng.lucene.util.LuceneUtil;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.tika.Tika;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.File;
 
 /**
  * @Author zhenglian
  * @Date 2018/11/25
  */
 public class SearchCaseTest {
-    
     private IndexCase indexCase;
     private SearchCase searchCase;
     
     @Before
     public void init() {
+//        initIndex();
+        searchCase = new SearchCase();
+    }
+
+    private void initIndex() {
         indexCase = new IndexCase();
         try {
             indexCase.index();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        searchCase = new SearchCase();
     }
-    
+
     @Test
     public void search() throws Exception {
-        searchCase.search("id", "4");
+        searchCase.search("content", "hello");
     }
 
     @Test
     public void multiTimeSearch() throws Exception {
         // search用同一个reader, 在执行search过程中删除其中一个文档，看是否会对查询有影响
-        for (int i = 0; i < 2; i++) {
-            searchCase.search("content", "hello");
-            Thread.sleep(10000);
+        for(int i = 0; i < 5; i++) {
+            searchCase.docsInfo();
+            indexCase.delete("content", "jak");
+            searchCase.docsInfo();
+            IndexWriter writer = LuceneUtil.getInstance().getWriter();
+            writer.commit();
+            Thread.sleep(2000);
         }
+        
     }
 
     @Test
-    public void docsInfo() throws Exception {
+    public void docsInfo()  {
         searchCase.docsInfo();
     }
     
     @Test
-    public void searchByTerm() throws Exception {
-        searchCase.searchByTerm("content", "hello", 6);
+    public void searchByTerm()  {
+        searchCase.searchByTerm("id", "4", 6);
     }
     
     @Test
-    public void searchByTermRange() throws Exception {
+    public void searchByTermRange()  {
         searchCase.searchByTermRange("name", "lisi", "zhaoliu", 3);
     }
     
     @Test
-    public void searchByIntRange() throws Exception {
+    public void searchByIntRange()  {
         searchCase.searchByIntRange("id", 1, 4, 4);
     }
     
     @Test
-    public void searchByPrefix() throws Exception {
+    public void searchByPrefix() {
         searchCase.searchByPrefix("name", "z", 10);
     }
 
     @Test
-    public void searchByWildcard() throws Exception {
+    public void searchByWildcard() {
         searchCase.searchByWildcard("name", "zhang*", 10);
     }
 
     @Test
-    public void searchByBool() throws Exception {
+    public void searchByBool() {
         searchCase.searchByBool(10);
     }
 
@@ -96,5 +109,16 @@ public class SearchCaseTest {
 //        searchCase.searchByCustomQueryParser("id", "[1 TO 2]", 10);
         // date range
         searchCase.searchByCustomQueryParser("date", "[2018-11-11 TO 2018-12-20]", 10);
+    }
+
+    @Test
+    public void highlight() throws Exception {
+        String str = "lucene highlight first test";
+        String keyword = "lucene";
+        String result = searchCase.highlight(keyword, str);
+        System.out.println("title: " + result);
+        String content = new Tika().parseToString(new File("C:\\Users\\zhenglian\\Desktop\\hello.docx"));
+        result = searchCase.highlight("hello", content);
+        System.out.println("content: " + result);
     }
 }

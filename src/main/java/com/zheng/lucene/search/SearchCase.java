@@ -24,6 +24,10 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.WildcardQuery;
+import org.apache.lucene.search.highlight.Fragmenter;
+import org.apache.lucene.search.highlight.Highlighter;
+import org.apache.lucene.search.highlight.QueryScorer;
+import org.apache.lucene.search.highlight.SimpleSpanFragmenter;
 import org.apache.lucene.util.BytesRef;
 
 /**
@@ -32,13 +36,16 @@ import org.apache.lucene.util.BytesRef;
  */
 public class SearchCase {
 
-    public void search(String field, String value) throws Exception {
-        IndexSearcher searcher = new IndexSearcher(LuceneUtil.getInstance().getReader());
+    public void search(String field, String value) {
+        IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
         QueryParser parser = new QueryParser(field, new StandardAnalyzer());
-        Query query = parser.parse(value);
         int size = 10;
-        TopDocs topDocs = searcher.search(query, size);
-        printSearchResult(topDocs, searcher);
+        try {
+            Query query = parser.parse(value);
+            searchAndPrint(searcher, query, size);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void printSearchResult(TopDocs topDocs, IndexSearcher searcher) throws Exception {
@@ -61,18 +68,17 @@ public class SearchCase {
         System.out.println("doc:" + sd.doc);
     }
 
-    public void docsInfo() throws Exception {
-        IndexReader reader = LuceneUtil.getInstance().getReader();
+    public void docsInfo() {
+        IndexReader reader = LuceneUtil.getInstance().getSearcher().getIndexReader();
         System.out.println("实际可用的文档数：" + reader.numDocs());
         System.out.println("当前存在的所有文档数(包括删除的文档): " + reader.maxDoc());
         System.out.println("已经删除的文档数: " + reader.numDeletedDocs());
     }
     
-    public void searchByTerm(String field, String value, int num) throws Exception {
+    public void searchByTerm(String field, String value, int num) {
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
-        TermQuery query = new TermQuery(new Term(field, value));
-        TopDocs topDocs = searcher.search(query, num);
-        printSearchResult(topDocs,searcher);
+        Query query = new TermQuery(new Term(field, value));
+        searchAndPrint(searcher, query, num);
     }
 
     /**
@@ -83,12 +89,12 @@ public class SearchCase {
      * @param num
      * @throws Exception
      */
-    public void searchByTermRange(String field, String start, String end, int num) throws Exception {
+    public void searchByTermRange(String field, String start, String end, int num) {
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
-        TermRangeQuery query = new TermRangeQuery(field, new BytesRef(start), new BytesRef(end), 
+        
+        Query query = new TermRangeQuery(field, new BytesRef(start), new BytesRef(end), 
                 true, true);
-        TopDocs topDocs = searcher.search(query, num);
-        printSearchResult(topDocs,searcher);
+        searchAndPrint(searcher, query, num);
     }
 
     /**
@@ -99,11 +105,10 @@ public class SearchCase {
      * @param num
      * @throws Exception
      */
-    public void searchByIntRange(String field, int start, int end, int num) throws Exception {
+    public void searchByIntRange(String field, int start, int end, int num) {
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
         Query query = IntPoint.newRangeQuery(field, start, end);
-        TopDocs topDocs = searcher.search(query, num);
-        printSearchResult(topDocs,searcher);
+        searchAndPrint(searcher, query, num);
     }
 
     /**
@@ -113,11 +118,10 @@ public class SearchCase {
      * @param num
      * @throws Exception
      */
-    public void searchByPrefix(String field, String value, int num) throws Exception {
+    public void searchByPrefix(String field, String value, int num) {
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
         Query query = new PrefixQuery(new Term(field, value));
-        TopDocs topDocs = searcher.search(query, num);
-        printSearchResult(topDocs,searcher);
+        searchAndPrint(searcher, query, num);
     }
 
     /**
@@ -127,38 +131,45 @@ public class SearchCase {
      * @param num
      * @throws Exception
      */
-    public void searchByWildcard(String field, String value, int num) throws Exception {
+    public void searchByWildcard(String field, String value, int num) {
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
         Query query = new WildcardQuery(new Term(field, value));
-        TopDocs topDocs = searcher.search(query, num);
-        printSearchResult(topDocs,searcher);
+        searchAndPrint(searcher, query, num);
     }
 
     /**
      * 组合查询
      * @throws Exception
      */
-    public void searchByBool(int num) throws Exception {
+    public void searchByBool(int num) {
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
         Query query = new BooleanQuery.Builder().add(new BooleanClause(new TermQuery(new Term("name", "zhangsan")), BooleanClause.Occur.MUST))
                 .add(new TermQuery(new Term("content", "zhangsan")), BooleanClause.Occur.MUST)
                 .build();
-        TopDocs topDocs = searcher.search(query, num);
-        printSearchResult(topDocs,searcher);
+        searchAndPrint(searcher, query, num);
     }
 
     public void searchByPhrase(int num) throws Exception {
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
-        PhraseQuery query = new PhraseQuery(1, "content", "hello", "my");
-        TopDocs topDocs = searcher.search(query, num);
-        printSearchResult(topDocs,searcher);
+        Query query = new PhraseQuery(1, "content", "hello", "my");
+        searchAndPrint(searcher, query, num);
     }
 
     public void searchByFuzzy(int num) throws Exception {
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
-        FuzzyQuery query = new FuzzyQuery(new Term("name", "zhangsem"), 2, 5);
-        TopDocs topDocs = searcher.search(query, num);
-        printSearchResult(topDocs,searcher);
+        Query query = new FuzzyQuery(new Term("name", "zhangsem"), 2, 5);
+        searchAndPrint(searcher, query, num);
+    }
+
+    private void searchAndPrint(IndexSearcher searcher, Query query, int num) {
+        try {
+            TopDocs topDocs = searcher.search(query, num);
+            printSearchResult(topDocs,searcher);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            LuceneUtil.getInstance().release(searcher);
+        }
     }
 
     /**
@@ -169,28 +180,34 @@ public class SearchCase {
      * @param pageSize
      * @throws Exception
      */
-    public void searchByPage(String value, int pageNo, int pageSize) throws Exception {
+    public void searchByPage(String value, int pageNo, int pageSize) {
         System.out.println("search " + pageNo + " page.");
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
-        QueryParser parser = new QueryParser("content", new StandardAnalyzer());
-        Query query = parser.parse(value);
-        int maxRow = 100;
-        TopDocs topDocs = searcher.search(query, maxRow);
-        ScoreDoc[] scoreDocs = topDocs.scoreDocs;
-        int docNum = scoreDocs.length;
-        System.out.println("got " + docNum + " records");
-        int total = maxRow >  docNum ? docNum : maxRow; 
-        int from = (pageNo - 1) * pageSize;
-        if (from >= total) {
-            return;
-        }
-        int end = pageNo * pageSize;
-        end = end < total ? end : total;
-        
-        ScoreDoc sd;
-        for (int i = from; i < end; i++) {
-            sd = scoreDocs[i];
-            printDoc(sd, searcher);
+        try {
+            QueryParser parser = new QueryParser("content", new StandardAnalyzer());
+            Query query = parser.parse(value);
+            int maxRow = 100;
+            TopDocs topDocs = searcher.search(query, maxRow);
+            ScoreDoc[] scoreDocs = topDocs.scoreDocs;
+            int docNum = scoreDocs.length;
+            System.out.println("got " + docNum + " records");
+            int total = maxRow >  docNum ? docNum : maxRow;
+            int from = (pageNo - 1) * pageSize;
+            if (from >= total) {
+                return;
+            }
+            int end = pageNo * pageSize;
+            end = end < total ? end : total;
+
+            ScoreDoc sd;
+            for (int i = from; i < end; i++) {
+                sd = scoreDocs[i];
+                printDoc(sd, searcher);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            LuceneUtil.getInstance().release(searcher);
         }
     }
 
@@ -209,14 +226,21 @@ public class SearchCase {
      * @return
      * @throws Exception
      */
-    public ScoreDoc scroll(ScoreDoc after, String value, int size) throws Exception {
+    public ScoreDoc scroll(ScoreDoc after, String value, int size) {
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
-        QueryParser parser = new QueryParser("content", new StandardAnalyzer());
-        Query query = parser.parse(value);
-        TopDocs topDocs = searcher.searchAfter(after, query, size);
-        printSearchResult(topDocs, searcher);
-        ScoreDoc[] scoreDocs = topDocs.scoreDocs;
-        return scoreDocs[scoreDocs.length - 1];
+        try {
+            QueryParser parser = new QueryParser("content", new StandardAnalyzer());
+            Query query = parser.parse(value);
+            TopDocs topDocs = searcher.searchAfter(after, query, size);
+            printSearchResult(topDocs, searcher);
+            ScoreDoc[] scoreDocs = topDocs.scoreDocs;
+            return scoreDocs[scoreDocs.length - 1];
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            LuceneUtil.getInstance().release(searcher);
+        }
+        return null;
     }
 
     /**
@@ -226,44 +250,67 @@ public class SearchCase {
      * @param size
      * @throws Exception
      */
-    public void orderBySort(String field, String value, int size, Sort sort) throws Exception {
+    public void orderBySort(String field, String value, int size, Sort sort) {
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
-        QueryParser parser = new QueryParser(field, new StandardAnalyzer());
-        Query query = parser.parse(value);
-        TopDocs topDocs;
-        if (null != sort) {
-            topDocs = searcher.search(query, size, sort);
-        } else {
-            topDocs = searcher.search(query, size);
+        try {
+            QueryParser parser = new QueryParser(field, new StandardAnalyzer());
+            Query query = parser.parse(value);
+            TopDocs topDocs;
+            if (null != sort) {
+                topDocs = searcher.search(query, size, sort);
+            } else {
+                topDocs = searcher.search(query, size);
+            }
+            printSearchResult(topDocs, searcher);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            LuceneUtil.getInstance().release(searcher);
         }
-        printSearchResult(topDocs, searcher);
     }
     
-    public void orderByBoostValue(String field, String value, int size, DoubleValuesSource boost) throws Exception {
+    public void orderByBoostValue(String field, String value, int size, DoubleValuesSource boost) {
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
-        QueryParser parser = new QueryParser(field, new StandardAnalyzer());
-        Query q = parser.parse(value);
-        
-        // boosting query
-        FunctionScoreQuery query = FunctionScoreQuery.boostByValue(q, boost);
-        TopDocs topDocs = searcher.search(query, size);
-        printSearchResult(topDocs, searcher);
+        try {
+            QueryParser parser = new QueryParser(field, new StandardAnalyzer());
+            Query q = parser.parse(value);
+            
+            // boosting query
+            FunctionScoreQuery query = FunctionScoreQuery.boostByValue(q, boost);
+            TopDocs topDocs = searcher.search(query, size);
+            printSearchResult(topDocs, searcher);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            LuceneUtil.getInstance().release(searcher);
+        }
     }
 
-    public void orderByBoostQuery(Query q, Query boostMatch, float boost, int size) throws Exception {
+    public void orderByBoostQuery(Query q, Query boostMatch, float boost, int size) {
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
         // boosting query
-        FunctionScoreQuery query = FunctionScoreQuery.boostByQuery(q, boostMatch, boost);
-        TopDocs topDocs = searcher.search(query, size);
-        printSearchResult(topDocs, searcher);
+        Query query = FunctionScoreQuery.boostByQuery(q, boostMatch, boost);
+        searchAndPrint(searcher, query, size);
     }
     
     public void searchByCustomQueryParser(String field, String value, int size) throws Exception {
         IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
         QueryParser parser = new CustomQueryParser(field, new StandardAnalyzer());
         Query query = parser.parse(value);
-        TopDocs topDocs = searcher.search(query, size);
-        printSearchResult(topDocs, searcher);
+        searchAndPrint(searcher, query, size);
+    }
+
+    public String highlight(String keyword, String text) throws Exception {
+        // 要高亮的文本
+//        MultiFieldQueryParser parser = new MultiFieldQueryParser(new String[] {"title", "content"}, new StandardAnalyzer());
+        QueryParser parser = new QueryParser("title", new StandardAnalyzer());
+        Query query = parser.parse(keyword);
+        QueryScorer qs = new QueryScorer(query);
+        Fragmenter f = new SimpleSpanFragmenter(qs, 20);
+        Highlighter h = new Highlighter(qs);
+        h.setTextFragmenter(f);
+        String result = h.getBestFragment(new StandardAnalyzer(), "title", text);
+        return result;
     }
     
 }

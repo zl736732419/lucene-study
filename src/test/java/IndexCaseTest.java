@@ -5,6 +5,7 @@ import org.apache.lucene.index.IndexableField;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +38,7 @@ public class IndexCaseTest {
     
     @Test
     public void delete() throws Exception {
-        indexCase.delete("id", "4");
+        indexCase.delete("email", "a@qq.com");
     }
     
     @Test
@@ -59,4 +60,10 @@ public class IndexCaseTest {
     public void clean() throws Exception {
         indexCase.mergeDelete();
     }
+    
+    @Test
+    public void indexFile() throws Exception {
+        indexCase.indexFile(new File("C:\\Users\\zhenglian\\Desktop\\hello.docx"));
+    }
+    
 }
