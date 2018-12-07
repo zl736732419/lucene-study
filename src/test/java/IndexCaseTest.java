@@ -38,7 +38,7 @@ public class IndexCaseTest {
     
     @Test
     public void delete() throws Exception {
-        indexCase.delete("email", "a@qq.com");
+        indexCase.delete("content", "jak");
     }
     
     @Test

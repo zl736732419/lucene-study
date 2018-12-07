@@ -2,6 +2,7 @@ package com.zheng.lucene.index;
 
 import com.zheng.lucene.util.LuceneUtil;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -14,8 +15,11 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
 import org.apache.tika.Tika;
 
@@ -47,7 +51,7 @@ public class IndexCase {
     };
 
     public void index() throws Exception {
-        IndexWriter writer = LuceneUtil.getInstance().getWriter();
+        IndexWriter writer = LuceneUtil.getInstance().getWriter(IndexWriterConfig.OpenMode.CREATE);
         Document document;
         FieldType ft = getIndexStoredNotAnalyzeType();
         SimpleDateFormat sf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -71,11 +75,11 @@ public class IndexCase {
             document.add(storedDate);
             writer.addDocument(document);
         }
-        writer.commit();
+        writer.close();
     }
     
     public void indexFile(File file) throws Exception {
-        IndexWriter writer = LuceneUtil.getInstance().getWriter();
+        IndexWriter writer = LuceneUtil.getInstance().getWriter(IndexWriterConfig.OpenMode.CREATE);
         Document doc = new Document();
         Field pathField = new StringField("path", file.toString(), Field.Store.YES);
         doc.add(pathField);
@@ -89,7 +93,7 @@ public class IndexCase {
         Reader reader = new Tika().parse(file);
         doc.add(new TextField("content", reader));
         writer.addDocument(doc);
-        writer.commit();
+        writer.close();
     }
 
     /**
@@ -101,8 +105,9 @@ public class IndexCase {
      * @throws Exception
      */
     public void update(String field, String value, List<IndexableField> fields) throws Exception {
-        IndexWriter writer = LuceneUtil.getInstance().getWriter();
+        IndexWriter writer = LuceneUtil.getInstance().getWriter(null);
         writer.updateDocument(new Term(field, value), fields);
+        writer.close();
     }
 
     /**
@@ -112,8 +117,9 @@ public class IndexCase {
      * @throws Exception
      */
     public void merge(int segmentNumber) throws Exception {
-        IndexWriter writer = LuceneUtil.getInstance().getWriter();
+        IndexWriter writer = LuceneUtil.getInstance().getWriter(null);
         writer.forceMerge(segmentNumber);
+        writer.close();
     }
 
     private FieldType getIndexStoredNotAnalyzeType() {
@@ -125,22 +131,28 @@ public class IndexCase {
     }
 
     public void delete(String field, String value) throws Exception {
-        IndexWriter writer = LuceneUtil.getInstance().getWriter();
-        writer.deleteDocuments(new Term(field, value));
+        IndexWriter writer = LuceneUtil.getInstance().getWriter(null);
+        QueryParser parser = new QueryParser(field, new StandardAnalyzer());
+        Query query = parser.parse(value);
+        writer.deleteDocuments(query);
+        writer.close();
     }
     
     public void deleteAll() throws Exception {
-        IndexWriter writer = LuceneUtil.getInstance().getWriter();
+        IndexWriter writer = LuceneUtil.getInstance().getWriter(null);
         writer.deleteAll();
+        writer.close();
     }
 
     public void rollback() throws Exception {
-        IndexWriter writer = LuceneUtil.getInstance().getWriter();
+        IndexWriter writer = LuceneUtil.getInstance().getWriter(null);
         writer.rollback();
+        writer.close();
     }
 
     public void mergeDelete() throws Exception {
-        IndexWriter writer = LuceneUtil.getInstance().getWriter();
+        IndexWriter writer = LuceneUtil.getInstance().getWriter(null);
         writer.forceMergeDeletes();
+        writer.close();
     }
 }

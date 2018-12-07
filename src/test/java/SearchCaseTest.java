@@ -1,7 +1,6 @@
 import com.zheng.lucene.index.IndexCase;
 import com.zheng.lucene.search.SearchCase;
 import com.zheng.lucene.util.LuceneUtil;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.tika.Tika;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,23 +15,23 @@ public class SearchCaseTest {
     private IndexCase indexCase;
     private SearchCase searchCase;
     
+    private LuceneUtil luceneUtil = LuceneUtil.getInstance();
+    
     @Before
     public void init() {
-//        initIndex();
+        indexCase = new IndexCase();
+        luceneUtil.initSearcherManager();
+        luceneUtil.initScheduleReopenRefresh();
         searchCase = new SearchCase();
     }
 
-    private void initIndex() {
-        indexCase = new IndexCase();
-        try {
-            indexCase.index();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    @Test
+    public void delete() throws Exception {
+        indexCase.delete("content", "jak");
     }
 
     @Test
-    public void search() throws Exception {
+    public void search() {
         searchCase.search("content", "hello");
     }
 
@@ -41,13 +40,11 @@ public class SearchCaseTest {
         // search用同一个reader, 在执行search过程中删除其中一个文档，看是否会对查询有影响
         for(int i = 0; i < 5; i++) {
             searchCase.docsInfo();
+//            searchCase.search("content", "hello");
             indexCase.delete("content", "jak");
-            searchCase.docsInfo();
-            IndexWriter writer = LuceneUtil.getInstance().getWriter();
-            writer.commit();
+//            searchCase.docsInfo();
             Thread.sleep(2000);
         }
-        
     }
 
     @Test

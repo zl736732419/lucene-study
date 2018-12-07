@@ -69,10 +69,17 @@ public class SearchCase {
     }
 
     public void docsInfo() {
-        IndexReader reader = LuceneUtil.getInstance().getSearcher().getIndexReader();
-        System.out.println("实际可用的文档数：" + reader.numDocs());
-        System.out.println("当前存在的所有文档数(包括删除的文档): " + reader.maxDoc());
-        System.out.println("已经删除的文档数: " + reader.numDeletedDocs());
+        IndexSearcher searcher = LuceneUtil.getInstance().getSearcher();
+        try {
+            IndexReader reader = searcher.getIndexReader();
+            System.out.println("实际可用的文档数：" + reader.numDocs());
+            System.out.println("当前存在的所有文档数(包括删除的文档): " + reader.maxDoc());
+            System.out.println("已经删除的文档数: " + reader.numDeletedDocs());
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            LuceneUtil.getInstance().release(searcher);
+        }
     }
     
     public void searchByTerm(String field, String value, int num) {

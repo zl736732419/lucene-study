@@ -5,16 +5,17 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.search.ControlledRealTimeReopenThread;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.SearcherFactory;
 import org.apache.lucene.search.SearcherManager;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
-import org.apache.lucene.store.NRTCachingDirectory;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author zhenglian
@@ -22,52 +23,83 @@ import java.nio.file.Paths;
  */
 public class LuceneUtil {
     private Directory directory;
-    private IndexWriter writer;
-    private SearcherManager sm;
     @Deprecated
     private IndexReader reader;
+
+    private SearcherManager sm;
     
     private LuceneUtil() {
         init();
     }
-    
+
     private void init() {
         try {
             initDirectory();
-            initWriter();
-            initSearcherManager();
-            startReopenThread();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void initSearcherManager() throws Exception {
-        sm = new SearcherManager(writer, true, true, new SearcherFactory());
+    public void initScheduleReopenRefresh() {
+        ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+        executorService.scheduleAtFixedRate(() -> {
+            try {
+                sm.maybeRefresh();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }, 5, 5, TimeUnit.SECONDS);
+    }
+
+    public IndexWriter getWriter(IndexWriterConfig.OpenMode openMode) {
+        IndexWriterConfig iwc = new IndexWriterConfig(new StandardAnalyzer());
+        if (null != openMode) {
+            iwc.setOpenMode(openMode);
+        }
+        IndexWriter writer = null;
+        try {
+            writer = new IndexWriter(directory, iwc);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return writer;
+    }
+
+//    /**
+//     * 这里的writer要和index是同一个，否则会出现锁并发访问问题
+//     * @param writer
+//     */
+//    public void startReopenThread(IndexWriter writer) {
+//        ControlledRealTimeReopenThread thread = new ControlledRealTimeReopenThread(writer, sm,
+//                5.0, 0.025);
+//        thread.setDaemon(true);
+//        thread.setName("lucene reopen thread");
+//        thread.start();
+//    }
+
+    public void initSearcherManager() {
+        try {
+            sm = new SearcherManager(LuceneUtil.getInstance().getDirectory(), new SearcherFactory());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void initDirectory() throws Exception {
 //        directory = FSDirectory.open(Paths.get("E:\\lucene\\index2"));
-//        directory = MMapDirectory.open(Paths.get("E:\\lucene\\index"));
-        Directory delegateDirectory = MMapDirectory.open(Paths.get("E:\\lucene\\index"));
-        directory = new NRTCachingDirectory(delegateDirectory, 5.0, 60.0);
-    }
-
-    private void startReopenThread() {
-        ControlledRealTimeReopenThread thread = new ControlledRealTimeReopenThread(writer, sm, 
-                5.0, 0.025);
-        thread.setDaemon(true);
-        thread.setName("lucene reopen thread");
-        thread.start();
+        directory = MMapDirectory.open(Paths.get("E:\\lucene\\index"));
+//        Directory delegateDirectory = MMapDirectory.open(Paths.get("E:\\lucene\\index"));
+//        directory = new NRTCachingDirectory(delegateDirectory, 5.0, 60.0);
     }
 
     /**
      * 应用程序获取reader进行搜索操作，
      * 每次获取reader实例时都需要进行change检查，目的是为了解决在查询时对索引进行操作之后能重新同步索引
      * 以致于索引更新的结果能及时反映到搜索结果中
-     * @deprecated 已经被searcherManager工具类管理所取代
-     * @see SearcherManager#acquire()  
+     *
      * @return
+     * @see SearcherManager#acquire()
+     * @deprecated 已经被searcherManager工具类管理所取代
      */
     @Deprecated
     public IndexReader getReader() {
@@ -87,25 +119,12 @@ public class LuceneUtil {
         }
         return reader;
     }
-    
-    public void initWriter() {
-        IndexWriterConfig iwc = new IndexWriterConfig(new StandardAnalyzer());
-        iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
-        try {
-            writer = new IndexWriter(directory, iwc);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    
-    public IndexWriter getWriter() {
-        return writer;
-    }
-    
+
+
     private static class Inner {
-        private static LuceneUtil instance = new LuceneUtil(); 
+        private static LuceneUtil instance = new LuceneUtil();
     }
-    
+
     public static LuceneUtil getInstance() {
         return Inner.instance;
     }
@@ -118,7 +137,7 @@ public class LuceneUtil {
         }
         return null;
     }
-    
+
     public void release(IndexSearcher searcher) {
         try {
             sm.release(searcher);
@@ -126,7 +145,7 @@ public class LuceneUtil {
             e.printStackTrace();
         }
     }
-    
+
     public Directory getDirectory() {
         return directory;
     }
